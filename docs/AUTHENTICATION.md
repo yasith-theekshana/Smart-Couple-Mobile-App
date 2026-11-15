@@ -1,3 +1,5 @@
+Current update: partner sharing and invitation acceptance are now implemented. See [Partner Invitations](PARTNER_INVITATIONS.md). Earlier phase notes below describe the baseline before invitation support.
+
 # Current update
 
 Couple-space creation is now implemented. See [Couple Spaces](COUPLE_SPACES.md) for the narrow atomic initial-membership rule and setup behavior. The phase-2 notes below describe the authentication baseline; Create is no longer a placeholder, and only Join/invitations remain pending.

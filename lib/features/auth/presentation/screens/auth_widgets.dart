@@ -1,3 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/auth_provider.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../../ui.dart';
@@ -192,4 +196,19 @@ class _PasswordInputState extends State<PasswordInput> {
       ),
     ),
   );
+}
+
+class SignOutButton extends ConsumerWidget {
+  const SignOutButton({super.key});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(authControllerProvider);
+    return TextButton.icon(
+      onPressed: state.busy
+          ? null
+          : () => ref.read(authControllerProvider.notifier).signOut(),
+      icon: const Icon(Icons.logout, size: 18),
+      label: const Text('Sign out'),
+    );
+  }
 }

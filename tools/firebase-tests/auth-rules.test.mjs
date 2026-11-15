@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp, Timestamp, runTransaction } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp, Timestamp, runTransaction, writeBatch, arrayUnion } from 'firebase/firestore';
 let env;
 const projectId = 'demo-smart-couple';
 const profile = (overrides = {}) => ({name:'Alice',email:'alice@example.com',photoUrl:null,coupleId:null,createdAt:serverTimestamp(),updatedAt:serverTimestamp(),...overrides});
@@ -93,4 +93,64 @@ test('reject orphan spaces, profile-only linking, forged owners, extra members a
   await tx.get(doc(db,'users/alice'));tx.set(doc(db,'couples/second'),space());tx.update(doc(db,'users/alice'),{coupleId:'second',updatedAt:serverTimestamp()});
  }));
  await assertFails(updateDoc(doc(db,'users/alice'),{coupleId:null,updatedAt:serverTimestamp()}));
+});
+
+async function invitationFixture(){
+ const alice=own(),bob=env.authenticatedContext('bob',{email:'bob@example.com'}).firestore();
+ await setDoc(doc(alice,'users/alice'),profile());
+ await setDoc(doc(bob,'users/bob'),profile({name:'Bob',email:'bob@example.com'}));
+ await runTransaction(alice,async tx=>{await tx.get(doc(alice,'users/alice'));tx.set(doc(alice,'couples/invite-space'),{name:'Our world',createdBy:'alice',memberIds:['alice'],createdAt:serverTimestamp(),updatedAt:serverTimestamp()});tx.update(doc(alice,'users/alice'),{coupleId:'invite-space',updatedAt:serverTimestamp()});});
+ const make=(extra={})=>({coupleId:'invite-space',createdBy:'alice',spaceName:'Our world',status:'pending',createdAt:serverTimestamp(),expiresAt:Timestamp.fromMillis(Date.now()+3600000),acceptedBy:null,acceptedAt:null,...extra});
+ return {alice,bob,make};
+}
+async function acceptInvite(db,uid,token,extra={}){
+ const batch=writeBatch(db);
+ batch.update(doc(db,'couples/invite-space'),{memberIds:arrayUnion(uid),lastAcceptedInviteId:token,updatedAt:serverTimestamp(),...extra});
+ batch.update(doc(db,'users',uid),{coupleId:'invite-space',updatedAt:serverTimestamp()});
+ batch.update(doc(db,'invitations',token),{status:'accepted',acceptedBy:uid,acceptedAt:serverTimestamp()});
+ return batch.commit();
+}
+test('valid one-use invitation joins exactly two members, with private space access',async()=>{
+ const {alice,bob,make}=await invitationFixture(),token='A'.repeat(43),second='B'.repeat(43);
+ await assertSucceeds(setDoc(doc(alice,'invitations',token),make()));await setDoc(doc(alice,'invitations',second),make());
+ await assertSucceeds(getDoc(doc(bob,'invitations',token)));
+ await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'invitations',token)));
+ await assertFails(getDocs(collection(bob,'invitations')));
+ await assertSucceeds(acceptInvite(bob,'bob',token));
+ assert.deepEqual((await getDoc(doc(alice,'couples/invite-space'))).data().memberIds,['alice','bob']);
+ await assertSucceeds(getDoc(doc(bob,'couples/invite-space')));
+ await assertFails(getDoc(doc(bob,'users/alice')));
+ await assertFails(acceptInvite(bob,'bob',token));
+ const charlie=env.authenticatedContext('charlie',{email:'charlie@example.com'}).firestore();await setDoc(doc(charlie,'users/charlie'),profile({email:'charlie@example.com'}));
+ await assertFails(acceptInvite(charlie,'charlie',second));
+ assert.equal((await getDoc(doc(charlie,'users/charlie'))).data().coupleId,null);
+});
+test('expired and revoked links cannot be accepted',async()=>{
+ const {alice,bob,make}=await invitationFixture(),expired='C'.repeat(43),revoked='D'.repeat(43);
+ await assertFails(setDoc(doc(alice,'invitations',expired),make({expiresAt:Timestamp.fromMillis(Date.now()-10000)})));
+ await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),'invitations',expired),make({expiresAt:Timestamp.fromMillis(Date.now()-10000)})));
+ await assertFails(acceptInvite(bob,'bob',expired));
+ await setDoc(doc(alice,'invitations',revoked),make());await assertSucceeds(updateDoc(doc(alice,'invitations',revoked),{status:'revoked'}));
+ await assertFails(acceptInvite(bob,'bob',revoked));
+ assert.equal((await getDoc(doc(bob,'users/bob'))).data().coupleId,null);
+});
+test('reject forged invitations, partial accepts, own links, and space tampering',async()=>{
+ const {alice,bob,make}=await invitationFixture(),token='E'.repeat(43);
+ await assertFails(setDoc(doc(bob,'invitations',token),make({createdBy:'bob'})));
+ await assertFails(setDoc(doc(alice,'invitations','guessable'),make()));
+ await assertFails(setDoc(doc(alice,'invitations',token),make({expiresAt:Timestamp.fromMillis(Date.now()+48*3600000)})));
+ await setDoc(doc(alice,'invitations',token),make());
+ await assertFails(updateDoc(doc(bob,'invitations',token),{status:'accepted',acceptedBy:'bob',acceptedAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(bob,'invitations',token),{status:'revoked'}));
+ await assertFails(acceptInvite(alice,'alice',token));
+ await assertFails(acceptInvite(bob,'bob',token,{name:'Tampered'}));
+ await assertFails(acceptInvite(bob,'bob',token,{memberIds:['bob']}));
+ await assertSucceeds(acceptInvite(bob,'bob',token));
+});
+test('already-linked users cannot accept a different couple invitation',async()=>{
+ const {alice,bob,make}=await invitationFixture(),token='F'.repeat(43);
+ await setDoc(doc(alice,'invitations',token),make());
+ await runTransaction(bob,async tx=>{await tx.get(doc(bob,'users/bob'));tx.set(doc(bob,'couples/bob-space'),{name:'Other world',createdBy:'bob',memberIds:['bob'],createdAt:serverTimestamp(),updatedAt:serverTimestamp()});tx.update(doc(bob,'users/bob'),{coupleId:'bob-space',updatedAt:serverTimestamp()});});
+ await assertFails(acceptInvite(bob,'bob',token));
+ assert.equal((await getDoc(doc(bob,'users/bob'))).data().coupleId,'bob-space');
 });

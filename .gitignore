@@ -49,3 +49,6 @@ app.*.map.json
 
 # Node-based Firebase emulator tests
 node_modules/
+
+# Firebase hosting local cache
+.firebase/

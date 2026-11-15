@@ -1,58 +1,102 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isOwner(uid) {
-      return request.auth != null && request.auth.uid == uid;
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function validProfile(d) {
+      return d.keys().hasAll(['name','email','photoUrl','coupleId','createdAt','updatedAt'])
+        && d.keys().hasOnly(['name','email','photoUrl','coupleId','createdAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.email is string && d.email.size() > 0 && d.email.size() <= 254
+        && (d.photoUrl == null || (d.photoUrl is string && d.photoUrl.size() <= 2048))
+        && (d.coupleId == null || (d.coupleId is string && d.coupleId.size() > 0))
+        && d.createdAt is timestamp && d.updatedAt is timestamp;
     }
-    function validProfile(data) {
-      return data.keys().hasAll(['name', 'email', 'photoUrl', 'coupleId', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['name', 'email', 'photoUrl', 'coupleId', 'createdAt', 'updatedAt'])
-        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.email is string && data.email.size() > 0 && data.email.size() <= 254
-        && (data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 2048))
-        && (data.coupleId == null || (data.coupleId is string && data.coupleId.size() > 0))
-        && data.createdAt is timestamp && data.updatedAt is timestamp;
-    }
-    function validNewCouple(data, uid) {
-      return data.keys().hasAll(['name', 'createdBy', 'memberIds', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['name', 'createdBy', 'memberIds', 'createdAt', 'updatedAt'])
-        && data.name is string && data.name.size() > 0 && data.name.size() <= 80
-        && data.createdBy == uid && data.memberIds == [uid]
-        && data.createdAt == request.time && data.updatedAt == request.time;
+    function validNewCouple(d, uid) {
+      return d.keys().hasAll(['name','createdBy','memberIds','createdAt','updatedAt'])
+        && d.keys().hasOnly(['name','createdBy','memberIds','createdAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.createdBy == uid && d.memberIds == [uid]
+        && d.createdAt == request.time && d.updatedAt == request.time;
     }
     function createsOwnSpace(uid) {
       let id = request.resource.data.coupleId;
       return resource.data.coupleId == null && id is string && id.size() > 0 && id.size() <= 128
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coupleId', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coupleId','updatedAt'])
         && !exists(/databases/$(database)/documents/couples/$(id))
-        && validNewCouple(getAfter(/databases/$(database)/documents/couples/$(id)).data, uid);
+        && validNewCouple(getAfter(/databases/$(database)/documents/couples/$(id)).data,uid);
+    }
+    function validInvitation(d) {
+      return d.keys().hasAll(['coupleId','createdBy','spaceName','status','createdAt','expiresAt','acceptedBy','acceptedAt'])
+        && d.keys().hasOnly(['coupleId','createdBy','spaceName','status','createdAt','expiresAt','acceptedBy','acceptedAt'])
+        && d.coupleId is string && d.coupleId.size() > 0 && d.coupleId.size() <= 128
+        && d.createdBy is string && d.spaceName is string && d.spaceName.size() > 0 && d.spaceName.size() <= 80
+        && d.createdAt is timestamp && d.expiresAt is timestamp
+        && (d.acceptedBy == null || d.acceptedBy is string)
+        && (d.acceptedAt == null || d.acceptedAt is timestamp)
+        && d.status in ['pending','accepted','revoked'];
+    }
+    // Every acceptance must commit profile, space, and one-use capability together.
+    function acceptsInvitation(uid,coupleId,token) {
+      let before = get(/databases/$(database)/documents/invitations/$(token)).data;
+      let after = getAfter(/databases/$(database)/documents/invitations/$(token)).data;
+      let oldSpace = get(/databases/$(database)/documents/couples/$(coupleId)).data;
+      let space = getAfter(/databases/$(database)/documents/couples/$(coupleId)).data;
+      let oldUser = get(/databases/$(database)/documents/users/$(uid)).data;
+      let user = getAfter(/databases/$(database)/documents/users/$(uid)).data;
+      return token is string && token.matches('^[A-Za-z0-9_-]{43}$')
+        && before.status == 'pending' && before.expiresAt > request.time
+        && before.coupleId == coupleId && before.createdBy == oldSpace.createdBy && uid != before.createdBy
+        && validInvitation(after) && after.status == 'accepted' && after.acceptedBy == uid && after.acceptedAt == request.time
+        && after.diff(before).affectedKeys().hasOnly(['status','acceptedBy','acceptedAt'])
+        && oldSpace.memberIds == [before.createdBy] && space.memberIds == oldSpace.memberIds.concat([uid])
+        && space.lastAcceptedInviteId == token && space.updatedAt == request.time
+        && space.diff(oldSpace).affectedKeys().hasOnly(['memberIds','lastAcceptedInviteId','updatedAt'])
+        && oldUser.coupleId == null && user.coupleId == coupleId && validProfile(user)
+        && user.updatedAt == request.time && user.diff(oldUser).affectedKeys().hasOnly(['coupleId','updatedAt']);
+    }
+    function joinsSpace(uid) {
+      let id = request.resource.data.coupleId;
+      return resource.data.coupleId == null && id is string && id.size() > 0 && id.size() <= 128
+        && acceptsInvitation(uid,id,getAfter(/databases/$(database)/documents/couples/$(id)).data.lastAcceptedInviteId);
     }
     match /users/{uid} {
       allow get: if isOwner(uid);
       allow list: if false;
       allow create: if isOwner(uid) && validProfile(request.resource.data)
-        && request.auth.token.email != null
-        && request.resource.data.email == request.auth.token.email
+        && request.auth.token.email != null && request.resource.data.email == request.auth.token.email
         && request.resource.data.coupleId == null && request.resource.data.photoUrl == null
         && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
-      allow update: if isOwner(uid) && validProfile(request.resource.data)
-        && request.resource.data.updatedAt == request.time
-        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photoUrl', 'updatedAt'])
-          || createsOwnSpace(uid));
-      // Changing an established membership, email, or deleting accounts remains backend-only.
+      allow update: if isOwner(uid) && validProfile(request.resource.data) && request.resource.data.updatedAt == request.time
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','photoUrl','updatedAt']) || createsOwnSpace(uid) || joinsSpace(uid));
       allow delete: if false;
     }
     match /couples/{coupleId} {
-      allow create: if request.auth != null && coupleId.size() <= 128
-        && validNewCouple(request.resource.data, request.auth.uid)
+      allow create: if request.auth != null && coupleId.size() <= 128 && validNewCouple(request.resource.data,request.auth.uid)
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == null
         && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == coupleId;
       allow get: if request.auth != null && request.auth.uid in resource.data.memberIds
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == coupleId;
-      allow list, update, delete: if false;
+      allow update: if request.auth != null && acceptsInvitation(request.auth.uid,coupleId,request.resource.data.lastAcceptedInviteId);
+      allow list, delete: if false;
     }
-    match /{document=**} {
-      allow read, write: if false;
+    match /invitations/{token} {
+      // The unguessable 256-bit link is a capability, only readable after sign-in.
+      allow get: if request.auth != null && token.matches('^[A-Za-z0-9_-]{43}$');
+      allow list, delete: if false;
+      allow create: if request.auth != null && token.matches('^[A-Za-z0-9_-]{43}$') && validInvitation(request.resource.data)
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'pending'
+        && request.resource.data.acceptedBy == null && request.resource.data.acceptedAt == null
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt > request.time && request.resource.data.expiresAt <= request.time + duration.value(24,'h')
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == request.resource.data.coupleId
+        && get(/databases/$(database)/documents/couples/$(request.resource.data.coupleId)).data.createdBy == request.auth.uid
+        && get(/databases/$(database)/documents/couples/$(request.resource.data.coupleId)).data.memberIds == [request.auth.uid]
+        && get(/databases/$(database)/documents/couples/$(request.resource.data.coupleId)).data.name == request.resource.data.spaceName;
+      allow update: if request.auth != null && (
+        (resource.data.createdBy == request.auth.uid && resource.data.status == 'pending'
+          && request.resource.data.status == 'revoked' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        || acceptsInvitation(request.auth.uid,resource.data.coupleId,token));
     }
+    match /{document=**} { allow read, write: if false; }
   }
 }

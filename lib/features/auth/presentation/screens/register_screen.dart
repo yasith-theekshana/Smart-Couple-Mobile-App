@@ -1,3 +1,5 @@
+import '../../../invitations/presentation/invitation_provider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,6 +49,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       title: 'Join the sanctuary.',
       subtitle: 'Begin your journey towards a smarter partnership.',
       children: [
+        if (ref.watch(pendingInvitationProvider) != null)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: Text(
+              'Your partner invitation is saved. Sign in or register to review it.',
+            ),
+          ),
         if (action.error != null)
           AuthErrorBanner(authErrorMessage(action.error!)),
         AutofillGroup(

@@ -1,4 +1,6 @@
-﻿# Couple-space creation
+Current update: partner sharing and invitation acceptance are now implemented. See [Partner Invitations](PARTNER_INVITATIONS.md). Earlier phase notes below describe the baseline before invitation support.
+
+# Couple-space creation
 
 The existing Create Couple Space button now opens a validated name form. A signed-in
 user with a saved profile and no couple can create a space. Success follows the

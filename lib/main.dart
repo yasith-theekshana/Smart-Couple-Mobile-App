@@ -1,3 +1,4 @@
+import 'features/invitations/presentation/invitation_link_listener.dart';
 import 'features/couple/presentation/screens/couple_space_header.dart';
 
 import 'package:flutter/material.dart';
@@ -16,7 +17,9 @@ import 'articles.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const ProviderScope(child: SmartCoupleApp()));
+  runApp(
+    const ProviderScope(child: InvitationLinkListener(child: SmartCoupleApp())),
+  );
 }
 
 class SmartCoupleApp extends StatelessWidget {
@@ -25,6 +28,7 @@ class SmartCoupleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Smart Couple',
+    initialRoute: '/',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,

@@ -33,5 +33,39 @@
                       "auth":  {
                                    "port":  9099
                                }
-                  }
+                  },
+    "hosting":  {
+                    "ignore":  [
+                                   "firebase.json",
+                                   "**/node_modules/**"
+                               ],
+                    "site":  "smart-couple-app",
+                    "public":  "build/web",
+                    "headers":  [
+                                    {
+                                        "headers":  [
+                                                        {
+                                                            "key":  "Referrer-Policy",
+                                                            "value":  "no-referrer"
+                                                        }
+                                                    ],
+                                        "source":  "**"
+                                    },
+                                    {
+                                        "headers":  [
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        }
+                                                    ],
+                                        "source":  "/.well-known/assetlinks.json"
+                                    }
+                                ],
+                    "rewrites":  [
+                                     {
+                                         "destination":  "/index.html",
+                                         "source":  "**"
+                                     }
+                                 ]
+                }
 }

@@ -1,3 +1,5 @@
+import '../../../invitations/presentation/invitation_provider.dart';
+import '../../../invitations/presentation/invitation_screens.dart';
 import '../../../couple/presentation/screens/couple_setup_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -47,10 +49,13 @@ class AuthGate extends ConsumerWidget {
                 }
                 // A session-keyed navigator removes every previous user's route and
                 // dashboard state, including pushed articles, when identity changes.
+                final token = ref.watch(pendingInvitationProvider);
                 return Navigator(
-                  key: ValueKey('${user.uid}:${profile.coupleId}'),
+                  key: ValueKey('${user.uid}:${profile.coupleId}:$token'),
                   onGenerateRoute: (_) => MaterialPageRoute<void>(
-                    builder: (_) => profile.coupleId == null
+                    builder: (_) => token != null
+                        ? AcceptInvitationScreen(user: profile, token: token)
+                        : profile.coupleId == null
                         ? CoupleSetupScreen(user: profile)
                         : dashboardBuilder(profile),
                   ),
@@ -97,21 +102,6 @@ class _AuthScreensState extends State<AuthScreens> {
       onForgotPassword: () => change(2),
     ),
   };
-}
-
-class SignOutButton extends ConsumerWidget {
-  const SignOutButton({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(authControllerProvider);
-    return TextButton.icon(
-      onPressed: state.busy
-          ? null
-          : () => ref.read(authControllerProvider.notifier).signOut(),
-      icon: const Icon(Icons.logout, size: 18),
-      label: const Text('Sign out'),
-    );
-  }
 }
 
 class AuthProblem extends ConsumerWidget {

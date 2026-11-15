@@ -1,3 +1,5 @@
+import '../../../invitations/presentation/invitation_provider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,6 +48,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       title: 'Welcome back.',
       subtitle: 'Sign in to manage your shared life.',
       children: [
+        if (ref.watch(pendingInvitationProvider) != null)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: Text(
+              'Your partner invitation is saved. Sign in or register to review it.',
+            ),
+          ),
         if (action.error != null)
           AuthErrorBanner(authErrorMessage(action.error!)),
         AutofillGroup(

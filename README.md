@@ -72,4 +72,13 @@ platforms need FlutterFire configuration before running the app on those targets
 
 Create Couple Space now saves a named, private space and atomically links its creator.
 The profile listener opens the dashboard, which displays the saved space name.
-Join/invitations remain a future phase. See [couple-space implementation and tests](docs/COUPLE_SPACES.md).
+Join/invitations are implemented through private, single-use links. See [couple-space implementation and tests](docs/COUPLE_SPACES.md).
+
+## Partner invitations
+
+Use Home → Invite partner → CREATE INVITATION LINK → SHARE LINK or Copy link.
+Recipients sign in/register before accepting. Browser fallback is hosted on Firebase.
+See [invitation security, links and testing](docs/PARTNER_INVITATIONS.md).
+
+Invitation links can also be sent directly to a partner email address through EmailJS.
+See [EmailJS configuration and testing](docs/INVITATION_EMAIL.md).

@@ -1,3 +1,5 @@
+import '../../../invitations/presentation/invitation_screens.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,21 +56,6 @@ class _CoupleSetupScreenState extends ConsumerState<CoupleSetupScreen> {
     }
   }
 
-  void joinInfo() => showDialog<void>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Join Couple Space'),
-      content: const Text(
-        'Joining with a partner invitation will be available in the next phase. You can create your own space now.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
-        ),
-      ],
-    ),
-  );
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
@@ -79,7 +66,7 @@ class _CoupleSetupScreenState extends ConsumerState<CoupleSetupScreen> {
             ? 'Your space, together.'
             : 'Welcome, ${widget.user.name}.',
         subtitle: creating
-            ? 'Choose a name for the life you share. You can invite your partner in a future update.'
+            ? 'Choose a name for the life you share. Then invite your partner with a private link.'
             : 'Your account is ready. Create a space to begin.',
         children: [
           if (error != null) AuthErrorBanner(coupleErrorMessage(error!)),
@@ -125,13 +112,13 @@ class _CoupleSetupScreenState extends ConsumerState<CoupleSetupScreen> {
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: auth.busy ? null : joinInfo,
+              onPressed: auth.busy ? null : () => pasteInvitation(context, ref),
               icon: const Icon(Icons.link),
               label: const Text('Join Couple Space'),
             ),
             const SizedBox(height: 20),
             const Text(
-              'Your space starts with you. Partner invitations are coming later.',
+              'Create a space or open the invitation link your partner sent you.',
               textAlign: TextAlign.center,
             ),
           ],
