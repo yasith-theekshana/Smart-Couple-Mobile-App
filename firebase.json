@@ -1,0 +1,37 @@
+﻿{
+    "flutter":  {
+                    "platforms":  {
+                                      "android":  {
+                                                      "default":  {
+                                                                      "projectId":  "smart-couple-app",
+                                                                      "appId":  "1:573050830860:android:a0cc7374347069587e6e29",
+                                                                      "fileOutput":  "android/app/google-services.json"
+                                                                  }
+                                                  },
+                                      "dart":  {
+                                                   "lib/firebase_options.dart":  {
+                                                                                     "projectId":  "smart-couple-app",
+                                                                                     "configurations":  {
+                                                                                                            "android":  "1:573050830860:android:a0cc7374347069587e6e29",
+                                                                                                            "web":  "1:573050830860:web:ab49ca48452c949e7e6e29"
+                                                                                                        }
+                                                                                 }
+                                               }
+                                  }
+                },
+    "firestore":  {
+                      "rules":  "firestore.rules"
+                  },
+    "emulators":  {
+                      "firestore":  {
+                                        "port":  8080
+                                    },
+                      "ui":  {
+                                 "enabled":  false
+                             },
+                      "singleProjectMode":  true,
+                      "auth":  {
+                                   "port":  9099
+                               }
+                  }
+}

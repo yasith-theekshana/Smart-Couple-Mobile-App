@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'features/auth/domain/app_user.dart';
+import 'features/auth/presentation/screens/auth_gate.dart';
+import 'features/auth/presentation/providers/auth_provider.dart';
+
+import 'firebase_options.dart';
 
 import 'ui.dart';
 import 'articles.dart';
 
-void main() => runApp(const SmartCoupleApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const ProviderScope(child: SmartCoupleApp()));
+}
 
 class SmartCoupleApp extends StatelessWidget {
-  const SmartCoupleApp({super.key});
+  final Widget? home;
+  const SmartCoupleApp({super.key, this.home});
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Smart Couple',
@@ -40,12 +53,18 @@ class SmartCoupleApp extends StatelessWidget {
         ),
       ),
     ),
-    home: const CoupleHome(),
+    home:
+        home ??
+        AuthGate(
+          dashboardBuilder: (user) =>
+              CoupleHome(key: ValueKey(user.uid), user: user),
+        ),
   );
 }
 
 class CoupleHome extends StatefulWidget {
-  const CoupleHome({super.key});
+  final AppUser? user;
+  const CoupleHome({super.key, this.user});
   @override
   State<CoupleHome> createState() => _CoupleHomeState();
 }
@@ -359,7 +378,7 @@ class _CoupleHomeState extends State<CoupleHome> {
             children: [
               Text(tr('BIENVENUE', 'WELCOME'), style: eyebrow(gold)),
               const SizedBox(height: 4),
-              Text('Florian & Sophie', style: serif(23)),
+              Text(widget.user?.name ?? 'Florian & Sophie', style: serif(23)),
             ],
           ),
         ),
@@ -1490,10 +1509,23 @@ class _CoupleHomeState extends State<CoupleHome> {
           children: [
             Image.asset('assets/images/logo.png', width: 60, height: 60),
             const SizedBox(height: 14),
-            Text('Florian & Sophie', style: serif(25)),
+            Text(widget.user?.name ?? 'Florian & Sophie', style: serif(25)),
             const SizedBox(height: 8),
             Text('SMART COUPLE', style: eyebrow(gold)),
             const SizedBox(height: 26),
+            if (widget.user != null) Text(widget.user!.email),
+            if (widget.user != null)
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ProviderScope.containerOf(
+                    context,
+                    listen: false,
+                  ).read(authControllerProvider.notifier).signOut();
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Sign out'),
+              ),
             Text('LANGUE / LANGUAGE', style: eyebrow()),
             const SizedBox(height: 12),
             SegmentedButton<bool>(

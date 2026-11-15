@@ -1,4 +1,4 @@
-﻿# Smart Couple — Flutter mobile app
+# Smart Couple — Flutter mobile app
 
 Native Flutter recreation of the mobile demo in:
 https://github.com/yasith-theekshana/Smart-Couple-Mobile-App-Website
@@ -24,9 +24,9 @@ flutter run
 - French/English switching through the profile button.
 
 The demo starts in April 2026 to display the source project's sample data.
-Data is held in memory and resets when the app restarts. Authentication,
-persistent storage, partner synchronization, notifications, and payments are
-not implemented. Native layouts and forms adapt the reference rather than
+Dashboard demo data is held in memory and resets when the app restarts. Firebase
+authentication and user profiles are implemented; shared finance/task persistence,
+partner synchronization, notifications, and payments are not implemented. Native layouts and forms adapt the reference rather than
 embedding React in a WebView. Some advanced React controls (custom categories,
 split expense entry, weekly task navigation, and profile photo switching) are
 not ported.
@@ -48,3 +48,22 @@ The logo and article/profile artwork follow the linked reference repository.
 Photo sources include Unsplash, Pexels, and Lune Baroque, as used in that source.
 Fonts come from Google Fonts; their SIL Open Font License texts are included in
 `assets/fonts/Inter-LICENSE.txt` and `assets/fonts/Playfair-LICENSE.txt`.
+
+## Firebase
+
+Firebase Core is configured for project `smart-couple-app` on Android and web.
+The app initializes Firebase before showing its home screen. Android uses package
+`com.smartcouple.smart_couple`. Configuration is in `lib/firebase_options.dart`,
+`android/app/google-services.json`, and `firebase.json`.
+
+To regenerate configuration after adding platforms or Firebase products:
+
+```powershell
+firebase login
+& "$env:LOCALAPPDATA\Pub\Cache\bin\flutterfire.bat" configure --project=smart-couple-app --platforms=android,web
+```
+
+Firebase email/password authentication and private Firestore user profiles are
+implemented. See [authentication setup and tests](docs/AUTHENTICATION.md).
+Dashboard demo data still resets on restart. Other desktop/iOS
+platforms need FlutterFire configuration before running the app on those targets.

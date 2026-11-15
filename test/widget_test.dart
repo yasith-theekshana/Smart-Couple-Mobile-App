@@ -29,7 +29,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const SmartCoupleApp());
+    await tester.pumpWidget(const SmartCoupleApp(home: CoupleHome()));
     await tester.pumpAndSettle();
     expect(find.text('Florian & Sophie'), findsOneWidget);
     for (int i = 1; i < 5; i++) {
@@ -47,7 +47,7 @@ void main() {
   testWidgets('Shopping totals update and lists retain their items', (
     tester,
   ) async {
-    await tester.pumpWidget(const SmartCoupleApp());
+    await tester.pumpWidget(const SmartCoupleApp(home: CoupleHome()));
     await openTab(tester, 2);
     expect(find.text('19,45 €'), findsOneWidget);
     await press(tester, 'Ajouter au panier');
@@ -85,7 +85,7 @@ void main() {
   testWidgets('A task created in household appears on its calendar date', (
     tester,
   ) async {
-    await tester.pumpWidget(const SmartCoupleApp());
+    await tester.pumpWidget(const SmartCoupleApp(home: CoupleHome()));
     await openTab(tester, 4);
     await press(tester, 'Ajouter une tâche');
     await tester.enterText(
@@ -105,7 +105,7 @@ void main() {
   testWidgets('Expenses validate amounts and update the shared balance', (
     tester,
   ) async {
-    await tester.pumpWidget(const SmartCoupleApp());
+    await tester.pumpWidget(const SmartCoupleApp(home: CoupleHome()));
     await openTab(tester, 1);
     expect(find.text('4372,51 €'), findsWidgets);
     await press(tester, 'Nouvelle dépense');
