@@ -1,3 +1,5 @@
+import 'features/couple/presentation/screens/couple_space_header.dart';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -400,6 +402,7 @@ class _CoupleHomeState extends State<CoupleHome> {
         ),
       ],
     ),
+    if (widget.user?.coupleId case final id?) CoupleSpaceHeader(coupleId: id),
     const SizedBox(height: 32),
     section(
       tr('Répartition des responsabilités', 'Responsibility distribution'),

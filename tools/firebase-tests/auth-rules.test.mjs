@@ -53,3 +53,44 @@ test('Auth registration, idempotent Firestore profile, logout, login, duplicate 
   await sendPasswordResetEmail(auth,email);
  } finally { await signOut(auth); await deleteApp(app); }
 });
+
+// Couple creation must be one atomic, self-owned initial membership operation.
+test('creating a space atomically links only its creator and is readable only by members', async () => {
+ const db=own(); await setDoc(doc(db,'users/alice'),profile());
+ await runTransaction(db,async tx=>{
+  const user=await tx.get(doc(db,'users/alice')); assert.equal(user.data().coupleId,null);
+  tx.set(doc(db,'couples/space-a'),{name:'Our world',createdBy:'alice',memberIds:['alice'],createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+  tx.update(doc(db,'users/alice'),{coupleId:'space-a',updatedAt:serverTimestamp()});
+ });
+ await assertSucceeds(getDoc(doc(db,'couples/space-a')));
+ assert.equal((await getDoc(doc(db,'users/alice'))).data().coupleId,'space-a');
+ await assertFails(getDoc(doc(env.authenticatedContext('bob',{email:'bob@example.com'}).firestore(),'couples/space-a')));
+ await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'couples/space-a')));
+ await assertFails(getDocs(collection(db,'couples')));
+ await assertFails(updateDoc(doc(db,'couples/space-a'),{memberIds:['alice','bob']}));
+});
+test('reject orphan spaces, profile-only linking, forged owners, extra members and switching membership', async () => {
+ const db=own(); await setDoc(doc(db,'users/alice'),profile());
+ const space=(extra={})=>({name:'Our world',createdBy:'alice',memberIds:['alice'],createdAt:serverTimestamp(),updatedAt:serverTimestamp(),...extra});
+ await assertFails(setDoc(doc(db,'couples/orphan'),space()));
+ await assertFails(updateDoc(doc(db,'users/alice'),{coupleId:'missing',updatedAt:serverTimestamp()}));
+ for(const invalid of [{createdBy:'bob'},{memberIds:['alice','bob']},{name:''},{name:4},{extra:true}]) {
+  await assertFails(runTransaction(db,async tx=>{
+   await tx.get(doc(db,'users/alice'));
+   tx.set(doc(db,'couples/invalid'),space(invalid));
+   tx.update(doc(db,'users/alice'),{coupleId:'invalid',updatedAt:serverTimestamp()});
+  }));
+ }
+ assert.equal((await getDoc(doc(db,'users/alice'))).data().coupleId,null);
+ await env.withSecurityRulesDisabled(async ctx=>{
+  await setDoc(doc(ctx.firestore(),'couples/existing'),space());
+ });
+ await assertFails(updateDoc(doc(db,'users/alice'),{coupleId:'existing',updatedAt:serverTimestamp()}));
+ await runTransaction(db,async tx=>{
+  await tx.get(doc(db,'users/alice'));tx.set(doc(db,'couples/first'),space());tx.update(doc(db,'users/alice'),{coupleId:'first',updatedAt:serverTimestamp()});
+ });
+ await assertFails(runTransaction(db,async tx=>{
+  await tx.get(doc(db,'users/alice'));tx.set(doc(db,'couples/second'),space());tx.update(doc(db,'users/alice'),{coupleId:'second',updatedAt:serverTimestamp()});
+ }));
+ await assertFails(updateDoc(doc(db,'users/alice'),{coupleId:null,updatedAt:serverTimestamp()}));
+});

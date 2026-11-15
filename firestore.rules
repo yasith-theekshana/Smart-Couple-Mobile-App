@@ -13,21 +13,43 @@ service cloud.firestore {
         && (data.coupleId == null || (data.coupleId is string && data.coupleId.size() > 0))
         && data.createdAt is timestamp && data.updatedAt is timestamp;
     }
+    function validNewCouple(data, uid) {
+      return data.keys().hasAll(['name', 'createdBy', 'memberIds', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'createdBy', 'memberIds', 'createdAt', 'updatedAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 80
+        && data.createdBy == uid && data.memberIds == [uid]
+        && data.createdAt == request.time && data.updatedAt == request.time;
+    }
+    function createsOwnSpace(uid) {
+      let id = request.resource.data.coupleId;
+      return resource.data.coupleId == null && id is string && id.size() > 0 && id.size() <= 128
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coupleId', 'updatedAt'])
+        && !exists(/databases/$(database)/documents/couples/$(id))
+        && validNewCouple(getAfter(/databases/$(database)/documents/couples/$(id)).data, uid);
+    }
     match /users/{uid} {
       allow get: if isOwner(uid);
       allow list: if false;
       allow create: if isOwner(uid) && validProfile(request.resource.data)
         && request.auth.token.email != null
         && request.resource.data.email == request.auth.token.email
-        && request.resource.data.coupleId == null
-        && request.resource.data.photoUrl == null
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.coupleId == null && request.resource.data.photoUrl == null
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
       allow update: if isOwner(uid) && validProfile(request.resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photoUrl', 'updatedAt'])
-        && request.resource.data.updatedAt == request.time;
-      // Membership, email synchronization, and account deletion require a trusted backend.
+        && request.resource.data.updatedAt == request.time
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photoUrl', 'updatedAt'])
+          || createsOwnSpace(uid));
+      // Changing an established membership, email, or deleting accounts remains backend-only.
       allow delete: if false;
+    }
+    match /couples/{coupleId} {
+      allow create: if request.auth != null && coupleId.size() <= 128
+        && validNewCouple(request.resource.data, request.auth.uid)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == null
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == coupleId;
+      allow get: if request.auth != null && request.auth.uid in resource.data.memberIds
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == coupleId;
+      allow list, update, delete: if false;
     }
     match /{document=**} {
       allow read, write: if false;

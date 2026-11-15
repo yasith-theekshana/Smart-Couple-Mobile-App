@@ -67,3 +67,9 @@ Firebase email/password authentication and private Firestore user profiles are
 implemented. See [authentication setup and tests](docs/AUTHENTICATION.md).
 Dashboard demo data still resets on restart. Other desktop/iOS
 platforms need FlutterFire configuration before running the app on those targets.
+
+## Couple spaces
+
+Create Couple Space now saves a named, private space and atomically links its creator.
+The profile listener opens the dashboard, which displays the saved space name.
+Join/invitations remain a future phase. See [couple-space implementation and tests](docs/COUPLE_SPACES.md).

@@ -1,3 +1,5 @@
+import '../../../couple/presentation/screens/couple_setup_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -189,53 +191,4 @@ class _RecoverProfileScreenState extends ConsumerState<RecoverProfileScreen> {
       ],
     );
   }
-}
-
-class CoupleSetupScreen extends ConsumerWidget {
-  final AppUser user;
-  const CoupleSetupScreen({super.key, required this.user});
-  void comingSoon(BuildContext context, String title) => showDialog<void>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: const Text(
-        'Couple spaces and partner invitations will be available in the next phase. Your account is ready; no partner has been connected.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
-        ),
-      ],
-    ),
-  );
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => AuthShell(
-    title: 'Welcome, ${user.name}.',
-    subtitle: 'Your account is ready. Your shared space comes next.',
-    children: [
-      if (ref.watch(authControllerProvider).error case final e?)
-        AuthErrorBanner(authErrorMessage(e)),
-      const Icon(Icons.favorite_outline, size: 48),
-      const SizedBox(height: 20),
-      FilledButton.icon(
-        onPressed: () => comingSoon(context, 'Create Couple Space'),
-        icon: const Icon(Icons.add),
-        label: const Text('Create Couple Space'),
-      ),
-      const SizedBox(height: 12),
-      OutlinedButton.icon(
-        onPressed: () => comingSoon(context, 'Join Couple Space'),
-        icon: const Icon(Icons.link),
-        label: const Text('Join Couple Space'),
-      ),
-      const SizedBox(height: 20),
-      const Text(
-        'Couple setup is coming in the next phase.',
-        textAlign: TextAlign.center,
-      ),
-      const SizedBox(height: 16),
-      const SignOutButton(),
-    ],
-  );
 }

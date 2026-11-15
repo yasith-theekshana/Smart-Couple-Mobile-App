@@ -1,4 +1,8 @@
-﻿# Phase 2: Firebase Authentication
+# Current update
+
+Couple-space creation is now implemented. See [Couple Spaces](COUPLE_SPACES.md) for the narrow atomic initial-membership rule and setup behavior. The phase-2 notes below describe the authentication baseline; Create is no longer a placeholder, and only Join/invitations remain pending.
+
+# Phase 2: Firebase Authentication
 
 The existing Flutter app uses Firebase project `smart-couple-app`. Its existing
 Android/web Firebase configuration is reused; no new Flutter project was created.
