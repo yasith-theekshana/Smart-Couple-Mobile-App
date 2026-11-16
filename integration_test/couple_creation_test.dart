@@ -5,6 +5,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:smart_couple/firebase_options.dart';
 import 'package:smart_couple/main.dart';
 import 'package:smart_couple/features/auth/data/auth_repository.dart';
@@ -28,10 +29,12 @@ void main() {
           db = FirebaseFirestore.instanceFor(app: app);
       await auth.useAuthEmulator('10.0.2.2', 9099);
       db.useFirestoreEmulator('10.0.2.2', 8080);
+      final functions = FirebaseFunctions.instanceFor(app: app)
+        ..useFunctionsEmulator('10.0.2.2', 5001);
       db.settings = const Settings(persistenceEnabled: false);
       final authRepo = FirebaseAuthRepository(auth),
           users = FirestoreUserRepository(db),
-          couples = FirestoreCoupleRepository(db);
+          couples = FirestoreCoupleRepository(db, functions);
       final email =
           'couple-${DateTime.now().microsecondsSinceEpoch}@example.com';
       final user = await authRepo.register(

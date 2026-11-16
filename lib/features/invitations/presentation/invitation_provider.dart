@@ -1,10 +1,11 @@
+import '../../../firebase_runtime.dart';
+
 import 'package:http/http.dart' as http;
 
 import '../data/invitation_email_service.dart';
 
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,7 +13,7 @@ import '../data/invitation_repository.dart';
 import '../domain/partner_invitation.dart';
 
 final invitationRepositoryProvider = Provider<InvitationRepository>(
-  (ref) => FirestoreInvitationRepository(FirebaseFirestore.instance),
+  (ref) => FirestoreInvitationRepository(activeFunctions),
 );
 final invitationProvider = StreamProvider.autoDispose
     .family<PartnerInvitation?, String>(

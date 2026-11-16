@@ -82,3 +82,20 @@ See [invitation security, links and testing](docs/PARTNER_INVITATIONS.md).
 
 Invitation links can also be sent directly to a partner email address through EmailJS.
 See [EmailJS configuration and testing](docs/INVITATION_EMAIL.md).
+
+## Phase 3 backend migration
+
+The current source uses authenticated callable functions for workspace creation and
+partner acceptance, with backend-only membership writes and hashed invitation tokens.
+This migration is locally tested and is not deployed to production. Deploying Functions
+requires Blaze approval; Spark emulator testing remains available. See
+[Phase 3 architecture, tests and coordinated rollout](docs/PHASE_3.md).
+
+## Run locally with saved test accounts
+
+Start `powershell -ExecutionPolicy Bypass -File tools/start-local-firebase.ps1` in
+one terminal, then `flutter run` in another. Debug builds default to the named
+local Firebase app and display LOCAL TEST. The helper restores saved emulator
+data and saves it on Ctrl+C; production accounts are separate. VS Code includes
+an explicit local launch configuration. Do not run integration suites against
+local data you need to retain; use a separate emulator session for tests.

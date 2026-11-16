@@ -1,3 +1,7 @@
+> Phase 3 update: the current source uses trusted callable backend operations.
+> Earlier client-transaction details below describe the previous release. Follow
+> [Phase 3 setup and rollout](PHASE_3.md) for current code and deployment requirements.
+
 # Invitation emails with EmailJS
 
 The Invite partner screen now sends the existing invitation link by email.

@@ -1,11 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../../firebase_runtime.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/couple_repository.dart';
 import '../../domain/couple_space.dart';
 
 final coupleRepositoryProvider = Provider<CoupleRepository>(
-  (ref) => FirestoreCoupleRepository(FirebaseFirestore.instance),
+  (ref) => FirestoreCoupleRepository(activeFirestore, activeFunctions),
 );
 final coupleSpaceProvider = StreamProvider.autoDispose
     .family<CoupleSpace?, String>(

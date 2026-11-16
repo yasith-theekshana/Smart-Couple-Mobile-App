@@ -158,6 +158,61 @@ void main() {
       expect(invites.accepts, 1);
     },
   );
+  testWidgets(
+    'Registration retains invitation and requires explicit acceptance',
+    (tester) async {
+      final auth = fixtures.TestAuth(), users = fixtures.TestUsers();
+      final invites = TestInvites(users);
+      final container = await mount(tester, auth, users, invites);
+      container.read(pendingInvitationProvider.notifier).open(token);
+      await tester.pumpAndSettle();
+      await fixtures.tap(tester, 'No account yet? Create an account');
+      for (final entry in {
+        'Your name': 'Alice',
+        'Email address': 'alice@example.com',
+        'Password': 'Secure123',
+        'Confirm password': 'Secure123',
+      }.entries) {
+        await tester.enterText(
+          find.widgetWithText(TextFormField, entry.key),
+          entry.value,
+        );
+      }
+      await fixtures.tap(tester, 'CREATE ACCOUNT');
+      expect(auth.registrations, 1);
+      expect(container.read(pendingInvitationProvider), token);
+      expect(find.text('ACCEPT INVITATION'), findsOneWidget);
+      expect(find.text('Invited by Your partner'), findsOneWidget);
+      expect(invites.accepts, 0);
+      expect(users.profiles['alice']!.coupleId, isNull);
+      await fixtures.tap(tester, 'ACCEPT INVITATION');
+      expect(find.text('Shared dashboard'), findsOneWidget);
+      expect(invites.accepts, 1);
+    },
+  );
+  testWidgets('Signed-in recipient can decline without changing membership', (
+    tester,
+  ) async {
+    final auth = fixtures.TestAuth(
+      const AuthSession('alice', email: 'alice@example.com'),
+    );
+    final users = fixtures.TestUsers();
+    users.profiles['alice'] = const AppUser(
+      uid: 'alice',
+      name: 'Alice',
+      email: 'alice@example.com',
+    );
+    final invites = TestInvites(users);
+    final container = await mount(tester, auth, users, invites);
+    container.read(pendingInvitationProvider.notifier).open(token);
+    await tester.pumpAndSettle();
+    expect(find.text('ACCEPT INVITATION'), findsOneWidget);
+    await fixtures.tap(tester, 'Decline invitation');
+    expect(container.read(pendingInvitationProvider), isNull);
+    expect(invites.accepts, 0);
+    expect(users.profiles['alice']!.coupleId, isNull);
+    expect(find.text('Create Couple Space'), findsOneWidget);
+  });
   testWidgets('Expired invitations cannot be accepted', (tester) async {
     final auth = fixtures.TestAuth(
           const AuthSession('alice', email: 'alice@example.com'),

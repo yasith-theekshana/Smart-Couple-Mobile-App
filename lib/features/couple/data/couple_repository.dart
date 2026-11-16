@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../auth/domain/app_user.dart';
 import '../domain/couple_space.dart';
@@ -10,59 +11,27 @@ abstract class CoupleRepository {
 
 class FirestoreCoupleRepository implements CoupleRepository {
   final FirebaseFirestore _db;
-  FirestoreCoupleRepository(this._db);
+  final FirebaseFunctions _functions;
+  FirestoreCoupleRepository(this._db, this._functions);
   @override
   Future<String> createCoupleSpace(String uid, String name) async {
     if (validateCoupleName(name) != null) {
       throw const AuthFailure('invalid-couple-name');
     }
-    final profile = _db.collection('users').doc(uid);
-    // Allocate once outside the retryable transaction callback. Existing membership
-    // wins on retries or a simultaneous create from another device.
-    final space = _db.collection('couples').doc();
     try {
-      return await _db.runTransaction<String>((tx) async {
-        final user = await tx.get(profile);
-        if (!user.exists) {
-          throw const AuthFailure('missing-profile');
-        }
-        final existing = user.data()!['coupleId'];
-        if (existing is String && existing.isNotEmpty) {
-          return existing;
-        }
-        if (existing != null) {
-          throw const AuthFailure('invalid-profile');
-        }
-        tx.set(space, <String, dynamic>{
-          'name': name.trim(),
-          'createdBy': uid,
-          'memberIds': [uid],
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        tx.update(profile, <String, dynamic>{
-          'coupleId': space.id,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        return space.id;
-      }, timeout: const Duration(seconds: 20));
-    } on FirebaseException catch (error, stack) {
-      // A competing initial link can make rule evaluation deny this transaction
-      // before the SDK retries it. Only accept membership confirmed by the server.
-      if (error.code == 'permission-denied' || error.code == 'aborted') {
-        try {
-          final current = await profile.get(
-            const GetOptions(source: Source.server),
-          );
-          final id = current.data()?['coupleId'];
-          if (id is String && id.isNotEmpty) {
-            return id;
-          }
-        } catch (_) {
-          // Retain the original, actionable error when server recovery also fails.
-        }
-      }
-      Error.throwWithStackTrace(error, stack);
+      final result = await _functions.httpsCallable('createCoupleSpace').call({
+        'name': name.trim(),
+      });
+      return (result.data as Map)['coupleId'] as String;
+    } on FirebaseFunctionsException catch (error) {
+      final details = error.details;
+      throw AuthFailure(
+        details is Map && details['reason'] is String
+            ? details['reason'] as String
+            : error.code == 'not-found'
+            ? 'backend-not-ready'
+            : error.code,
+      );
     }
   }
 

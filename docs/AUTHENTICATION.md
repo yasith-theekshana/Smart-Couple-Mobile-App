@@ -156,3 +156,8 @@ https://firebase.google.com/docs/firestore/security/rules-fields.
   cross-user denial, and protected membership-field denial passed. Temporary
   accounts and profiles were removed. No real password-reset email was sent by
   automated tests; inbox delivery remains the manual mailbox check above.
+
+## Phase 3 membership
+
+Profile registration remains client-side with `coupleId: null`. Only trusted
+callable functions now set membership. See [Phase 3 setup](PHASE_3.md).

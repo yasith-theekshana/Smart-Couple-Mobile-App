@@ -1,3 +1,5 @@
+import '../../../../firebase_runtime.dart';
+
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,10 +11,10 @@ import '../../data/user_repository.dart';
 import '../../domain/app_user.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => FirebaseAuthRepository(FirebaseAuth.instance),
+  (ref) => FirebaseAuthRepository(activeFirebaseAuth),
 );
 final userRepositoryProvider = Provider<UserRepository>(
-  (ref) => FirestoreUserRepository(FirebaseFirestore.instance),
+  (ref) => FirestoreUserRepository(activeFirestore),
 );
 final authStateProvider = StreamProvider<AuthSession?>(
   (ref) => ref.watch(authRepositoryProvider).authStateChanges(),
@@ -81,6 +83,7 @@ String authErrorMessage(Object error) {
       ? error.code
       : '';
   return switch (code) {
+    'backend-not-ready' => 'The secure couple service has not been deployed yet. Please try again after setup is complete.',
     'invalid-email' => 'Enter a valid email address.',
     'weak-password' || 'password-does-not-meet-requirements' => 'Choose a stronger password: at least 8 characters, a letter and a number.',
     'email-already-in-use' =>

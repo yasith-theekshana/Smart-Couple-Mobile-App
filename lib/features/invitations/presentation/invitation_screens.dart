@@ -348,6 +348,10 @@ class _AcceptInvitationScreenState
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
+                Text('Invited by ${value.inviterName}'),
+                Text(
+                  'Status: ${expired && value.status == 'pending' ? 'expired' : value.status}',
+                ),
                 const SizedBox(height: 20),
                 if (joined)
                   const Text(
@@ -364,7 +368,11 @@ class _AcceptInvitationScreenState
                 else if (value.status != 'pending')
                   AuthErrorBanner(
                     invitationError(
-                      const InvitationFailure('unavailable-invite'),
+                      InvitationFailure(
+                        value.status == 'accepted'
+                            ? 'already-accepted'
+                            : 'revoked',
+                      ),
                     ),
                   )
                 else if (expired)
@@ -386,7 +394,9 @@ class _AcceptInvitationScreenState
                 ? null
                 : () => ref.read(pendingInvitationProvider.notifier).clear(),
             child: Text(
-              widget.user.coupleId == null ? 'Not now' : 'Continue to my space',
+              widget.user.coupleId == null
+                  ? 'Decline invitation'
+                  : 'Continue to my space',
             ),
           ),
           if (!busy) const SignOutButton(),

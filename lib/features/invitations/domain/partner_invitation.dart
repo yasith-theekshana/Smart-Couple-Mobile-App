@@ -34,6 +34,7 @@ class PartnerInvitation {
   final String token, coupleId, createdBy, spaceName, status;
   final DateTime expiresAt;
   final String? acceptedBy;
+  final String inviterName;
   const PartnerInvitation({
     required this.token,
     required this.coupleId,
@@ -42,6 +43,7 @@ class PartnerInvitation {
     required this.status,
     required this.expiresAt,
     this.acceptedBy,
+    this.inviterName = 'Your partner',
   });
   factory PartnerInvitation.fromMap(String token, Map<String, dynamic> data) =>
       PartnerInvitation(
@@ -50,7 +52,13 @@ class PartnerInvitation {
         createdBy: data['createdBy'] as String,
         spaceName: data['spaceName'] as String,
         status: data['status'] as String,
-        expiresAt: (data['expiresAt'] as Timestamp).toDate(),
+        expiresAt: data['expiresAt'] is Timestamp
+            ? (data['expiresAt'] as Timestamp).toDate()
+            : DateTime.fromMillisecondsSinceEpoch(
+                data['expiresAt'] as int,
+                isUtc: true,
+              ),
+        inviterName: data['inviterName'] as String? ?? 'Your partner',
         acceptedBy: data['acceptedBy'] as String?,
       );
   String get link => invitationLink(token);
@@ -68,6 +76,12 @@ String invitationError(Object error) {
       ? error.code
       : '';
   return switch (code) {
+    'backend-not-ready' => 'The secure invitation service has not been deployed yet. Please try again after setup is complete.',
+    'unauthenticated' => 'Sign in again to continue.',
+    'email-mismatch' => 'Sign in with the invited email address and verify your email before accepting.',
+    'already-accepted' => 'This invitation has already been accepted.',
+    'revoked' =>
+      'This invitation has been revoked. Ask your partner for a new link.',
     'expired' =>
       'This invitation has expired. Ask your partner for a new link.',
     'unavailable-invite' => 'This invitation is no longer available. Ask your partner for a new link.',

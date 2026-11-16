@@ -1,3 +1,7 @@
+> Phase 3 update: the current source uses trusted callable backend operations.
+> Earlier client-transaction details below describe the previous release. Follow
+> [Phase 3 setup and rollout](PHASE_3.md) for current code and deployment requirements.
+
 Current update: partner sharing and invitation acceptance are now implemented. See [Partner Invitations](PARTNER_INVITATIONS.md). Earlier phase notes below describe the baseline before invitation support.
 
 # Couple-space creation

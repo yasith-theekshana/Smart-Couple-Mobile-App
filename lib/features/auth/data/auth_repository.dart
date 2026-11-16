@@ -25,7 +25,7 @@ class FirebaseAuthRepository implements AuthRepository {
     String password,
   ) async {
     final credential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password: password,
     );
     final user = credential.user!;
@@ -38,7 +38,7 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> signIn(String email, String password) async {
     await _auth.signInWithEmailAndPassword(
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password: password,
     );
   }
@@ -48,7 +48,7 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> resetPassword(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _auth.sendPasswordResetEmail(email: email.trim().toLowerCase());
     } on FirebaseAuthException catch (e) {
       // Avoid account enumeration even on projects without enumeration protection.
       if (e.code != 'user-not-found' && e.code != 'invalid-credential') {

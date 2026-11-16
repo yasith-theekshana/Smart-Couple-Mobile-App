@@ -81,6 +81,25 @@ class CoupleSpaceHeader extends ConsumerWidget {
                           label: const Text('Invite partner'),
                         ),
                       const SizedBox(height: 4),
+                      if (space != null && space.memberIds.length == 2)
+                        Text(
+                          space.memberIds
+                              .where(
+                                (uid) =>
+                                    uid !=
+                                    ref
+                                        .watch(authStateProvider)
+                                        .asData
+                                        ?.value
+                                        ?.uid,
+                              )
+                              .map(
+                                (uid) =>
+                                    'Connected with ${space.memberNames[uid] ?? 'your partner'}',
+                              )
+                              .join(', '),
+                          style: const TextStyle(color: royal, fontSize: 12),
+                        ),
                       Text(
                         space == null
                             ? 'Please contact support.'

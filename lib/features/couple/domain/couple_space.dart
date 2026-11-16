@@ -4,12 +4,14 @@ class CoupleSpace {
   final String id, name, createdBy;
   final List<String> memberIds;
   final DateTime? createdAt;
+  final Map<String, String> memberNames;
   const CoupleSpace({
     required this.id,
     required this.name,
     required this.createdBy,
     required this.memberIds,
     this.createdAt,
+    this.memberNames = const {},
   });
   factory CoupleSpace.fromMap(String id, Map<String, dynamic> data) =>
       CoupleSpace(
@@ -17,6 +19,9 @@ class CoupleSpace {
         name: data['name'] as String,
         createdBy: data['createdBy'] as String,
         memberIds: List<String>.from(data['memberIds'] as List),
+        memberNames: Map<String, String>.from(
+          data['memberNames'] as Map? ?? {},
+        ),
         createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       );
 }

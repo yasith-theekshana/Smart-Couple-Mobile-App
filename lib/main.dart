@@ -3,6 +3,8 @@ import 'features/couple/presentation/screens/couple_space_header.dart';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'features/auth/domain/app_user.dart';
@@ -10,13 +12,37 @@ import 'features/auth/presentation/screens/auth_gate.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 
 import 'firebase_options.dart';
+import 'firebase_runtime.dart';
 
 import 'ui.dart';
 import 'articles.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  const emulators = useFirebaseEmulators;
+  if (emulators && !kDebugMode) {
+    throw StateError('Firebase emulators are for debug builds only.');
+  }
+  await Firebase.initializeApp(
+    name: emulators ? localFirebaseAppName : null,
+    options: emulators
+        ? DefaultFirebaseOptions.currentPlatform.copyWith(
+            projectId: 'demo-smart-couple',
+          )
+        : DefaultFirebaseOptions.currentPlatform,
+  );
+  if (emulators) {
+    const overrideHost = String.fromEnvironment('FIREBASE_EMULATOR_HOST');
+    final host = overrideHost.isNotEmpty
+        ? overrideHost
+        : kIsWeb
+        ? '127.0.0.1'
+        : '10.0.2.2';
+    await activeFirebaseAuth.useAuthEmulator(host, 9099);
+    activeFirestore.useFirestoreEmulator(host, 8080);
+    activeFirestore.settings = const Settings(persistenceEnabled: false);
+    activeFunctions.useFunctionsEmulator(host, 5001);
+  }
   runApp(
     const ProviderScope(child: InvitationLinkListener(child: SmartCoupleApp())),
   );
@@ -28,6 +54,13 @@ class SmartCoupleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Smart Couple',
+    builder: (context, child) => useFirebaseEmulators
+        ? Banner(
+            message: 'LOCAL TEST',
+            location: BannerLocation.topEnd,
+            child: child!,
+          )
+        : child!,
     initialRoute: '/',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
